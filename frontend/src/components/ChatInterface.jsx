@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import { chatService } from '../services/api';
 import './ChatInterface.css';
 
-function ChatInterface({ conversationHistory, onNewMessage, onClearChat }) {
+function ChatInterface({ conversationHistory, onNewMessage, onClearChat, selectedModel }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +43,7 @@ function ChatInterface({ conversationHistory, onNewMessage, onClearChat }) {
     setIsLoading(true);
 
     try {
-      const response = await chatService.sendMessage(userMessage, conversationHistory);
+      const response = await chatService.sendMessage(userMessage, conversationHistory, selectedModel);
 
       // Add assistant message
       const assistantMessage = {

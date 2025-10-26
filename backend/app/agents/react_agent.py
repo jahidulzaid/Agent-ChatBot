@@ -32,7 +32,7 @@ Action Input: {{"parameter": "value"}}
 Thought: [Analyze the observation, decide if you need more info]
 Action: [another_tool if needed]
 OR
-Answer: [Concise 2-4 sentence response based on facts]
+Answer: [Concise response based on facts]
 
 Available tools:
 {tool_descriptions}
@@ -76,13 +76,15 @@ For greetings (hi/hello), respond directly with "Answer: Hello! How can I help y
     async def run(
         self,
         user_message: str,
-        conversation_history: Optional[List[Dict[str, str]]] = None
+        conversation_history: Optional[List[Dict[str, str]]] = None,
+        model: Optional[str] = None
     ) -> Dict[str, Any]:
         """Run the agent to process a user message.
         
         Args:
             user_message: The user's message
             conversation_history: Previous conversation messages
+            model: Optional model override
             
         Returns:
             Agent response with reasoning trace
@@ -109,8 +111,8 @@ For greetings (hi/hello), respond directly with "Answer: Hello! How can I help y
             iteration += 1
             logger.info(f"Agent iteration {iteration}")
             
-            # Get agent response
-            response = await llm_client.chat_completion(messages)
+            # Get agent response with optional model override
+            response = await llm_client.chat_completion(messages, model=model)
             content = response['content']
             
             # Parse the response

@@ -45,6 +45,7 @@ class ChatRequest(BaseModel):
     message: str
     conversation_history: Optional[List[Dict[str, str]]] = None
     use_rag: bool = True
+    model: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
@@ -119,11 +120,14 @@ async def chat(request: ChatRequest):
     """
     try:
         logger.info(f"Received chat request: {request.message[:100]}")
+        if request.model:
+            logger.info(f"Using model: {request.model}")
         
         # Run the agent
         result = await react_agent.run(
             user_message=request.message,
-            conversation_history=request.conversation_history or []
+            conversation_history=request.conversation_history or [],
+            model=request.model
         )
         
         return ChatResponse(

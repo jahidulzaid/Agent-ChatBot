@@ -26,7 +26,8 @@ class OpenRouterClient:
         messages: List[Dict[str, str]],
         temperature: float = None,
         max_tokens: int = None,
-        stream: bool = False
+        stream: bool = False,
+        model: str = None
     ) -> Dict[str, Any]:
         """Generate a chat completion.
         
@@ -35,6 +36,7 @@ class OpenRouterClient:
             temperature: Sampling temperature (0-1)
             max_tokens: Maximum tokens to generate
             stream: Whether to stream the response
+            model: Optional model override
             
         Returns:
             Completion response
@@ -44,9 +46,11 @@ class OpenRouterClient:
                 temperature = settings.TEMPERATURE
             if max_tokens is None:
                 max_tokens = settings.MAX_TOKENS
+            if model is None:
+                model = self.model
             
             response = self.client.chat.completions.create(
-                model=self.model,
+                model=model,
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens,

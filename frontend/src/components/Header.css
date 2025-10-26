@@ -6,12 +6,50 @@
   justify-content: space-between;
   align-items: center;
   z-index: 100;
+  gap: 1rem;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-shrink: 0;
+}
+
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.model-selector {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  color: #333;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.model-selector:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.model-selector:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.model-selector option {
+  padding: 0.5rem;
 }
 
 .toggle-sidebar-btn {

@@ -10,20 +10,32 @@ const api = axios.create({
 });
 
 export const chatService = {
-  sendMessage: async (message, conversationHistory = []) => {
-    const response = await api.post('/chat', {
+  sendMessage: async (message, conversationHistory = [], model = null) => {
+    const payload = {
       message,
       conversation_history: conversationHistory,
       use_rag: true,
-    });
+    };
+    
+    if (model) {
+      payload.model = model;
+    }
+    
+    const response = await api.post('/chat', payload);
     return response.data;
   },
 
-  streamMessage: async (message, conversationHistory = []) => {
-    const response = await api.post('/chat/stream', {
+  streamMessage: async (message, conversationHistory = [], model = null) => {
+    const payload = {
       message,
       conversation_history: conversationHistory,
-    }, {
+    };
+    
+    if (model) {
+      payload.model = model;
+    }
+    
+    const response = await api.post('/chat/stream', payload, {
       responseType: 'stream'
     });
     return response.data;

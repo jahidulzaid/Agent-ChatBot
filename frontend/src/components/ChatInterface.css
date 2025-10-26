@@ -168,7 +168,7 @@
   margin-top: 0.5rem;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 0.75rem;
+  padding: 0.5rem;
   background: #fafafa;
 }
 
@@ -177,6 +177,8 @@
   font-weight: 500;
   color: #667eea;
   user-select: none;
+  font-size: 0.813rem;
+  padding: 0.25rem 0.5rem;
 }
 
 .reasoning-trace summary:hover {

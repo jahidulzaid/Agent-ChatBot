@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chatbot-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-openai/gpt-4o-mini-2024-07-18}
+      - DEBUG=${DEBUG:-True}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://frontend:3000
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/.env:/app/.env
+    networks:
+      - chatbot-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chatbot-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - chatbot-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+networks:
+  chatbot-network:
+    driver: bridge
+
+volumes:
+  backend-data:
