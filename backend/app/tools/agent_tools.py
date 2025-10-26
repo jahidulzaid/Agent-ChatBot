@@ -20,7 +20,10 @@ class AgentTools:
             'get_current_time': self.get_current_time,
             'calculate': self.calculate,
             'summarize_documents': self.summarize_documents,
-            'web_search': self.web_search
+            'web_search': self.web_search,
+            'greet': self.greet,
+            'wish': self.wish,
+            'tell_joke': self.tell_joke
         }
     
     def get_tool_descriptions(self) -> List[Dict[str, Any]]:
@@ -56,10 +59,29 @@ class AgentTools:
             },
             {
                 'name': 'web_search',
-                'description': 'Search web for current info (simulated). Use for recent events not in documents.',
+                'description': 'Search the web for current information using DuckDuckGo. Use for recent events, facts, or information not available in documents.',
                 'parameters': {
-                    'query': 'Search query'
+                    'query': 'Search query (e.g., "latest AI news", "Python 3.12 features")'
                 }
+            },
+            {
+                'name': 'greet',
+                'description': 'Generate a personalized greeting. Use when user wants a formal greeting or introduction.',
+                'parameters': {
+                    'name': 'Person name (optional)'
+                }
+            },
+            {
+                'name': 'wish',
+                'description': 'Generate wishes for occasions. Use when user mentions birthday, holiday, celebration, etc.',
+                'parameters': {
+                    'occasion': 'Occasion (e.g., "birthday", "new year", "success")'
+                }
+            },
+            {
+                'name': 'tell_joke',
+                'description': 'Tell a programming or tech joke. Use when user asks for a joke or wants humor.',
+                'parameters': {}
             }
         ]
     
@@ -147,7 +169,7 @@ class AgentTools:
             return f"Error getting document summary: {str(e)}"
     
     async def web_search(self, query: str, **kwargs) -> str:
-        """Simulate web search (placeholder for actual implementation).
+        """Search the web for current information.
         
         Args:
             query: Search query
@@ -155,8 +177,126 @@ class AgentTools:
         Returns:
             Search results
         """
-        # This is a placeholder - in production, you'd integrate with a real search API
-        return f"Web search for '{query}': This is a simulated result. In production, this would query a real search API like DuckDuckGo or SerpAPI."
+        try:
+            # Zenserp API configuration
+            api_url = "https://app.zenserp.com/api/v2/search"
+            headers = {
+                "apikey": "d79890a0-b22e-11f0-b1ad-73eadf9a1c39"
+            }
+            params = {
+                "q": query
+            }
+            
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.get(api_url, headers=headers, params=params)
+                
+                if response.status_code != 200:
+                    # Fallback to DuckDuckGo link
+                    search_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
+                    return f"**Web Search:** {query}\n\nSearch API unavailable (Status: {response.status_code})\nClick here to search manually: {search_url}"
+                
+                data = response.json()
+                
+                # Build formatted results
+                results = [f"**Web Search Results for:** {query}\n"]
+                
+                # Get organic search results
+                organic_results = data.get('organic', [])
+                
+                if organic_results:
+                    results.append("**Top Results:**\n")
+                    for i, result in enumerate(organic_results[:5], 1):
+                        title = result.get('title', 'No title')
+                        url = result.get('url', '')
+                        description = result.get('description', '')
+                        
+                        results.append(f"{i}. **{title}**")
+                        if description:
+                            # Limit description to 150 chars
+                            desc = description[:150] + "..." if len(description) > 150 else description
+                            results.append(f"   {desc}")
+                        if url:
+                            results.append(f"  {url}")
+                        results.append("")  # Empty line for spacing
+                    
+                    # Add search URL for more results
+                    search_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
+                    results.append(f"**See all results:** {search_url}")
+                    
+                    return "\n".join(results)
+                else:
+                    # No results found
+                    search_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
+                    return f"**Web Search:** {query}\n\nNo results found.\nTry searching manually: {search_url}"
+                    
+        except httpx.TimeoutException:
+            search_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
+            return f"**Web Search:** {query}\n\nSearch timed out (15s limit exceeded).\nClick here to search manually: {search_url}"
+        except Exception as e:
+            logger.error(f"Error performing web search: {e}")
+            search_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
+            return f"**Web Search:** {query}\n\nError: {str(e)}\nClick here to search manually: {search_url}"
+
+    async def greet(self, name: str = None, **kwargs) -> str:
+        """Generate a personalized greeting.
+        
+        Args:
+            name: Optional person name
+            
+        Returns:
+            Personalized greeting
+        """
+        if name:
+            return f"Hello {name}! It's wonderful to meet you. I'm an AI assistant ready to help you with information retrieval, calculations, and answering your questions. How may I assist you today?"
+        return "Hello! Welcome! I'm an AI assistant equipped with various tools to help you. I can search documents, perform calculations, tell jokes, and much more. What can I do for you today?"
+    
+    async def wish(self, occasion: str, **kwargs) -> str:
+        """Generate wishes for special occasions.
+        
+        Args:
+            occasion: The occasion (birthday, new year, etc.)
+            
+        Returns:
+            Wishes message
+        """
+        occasion_lower = occasion.lower()
+        
+        wishes = {
+            'birthday': "🎉 Happy Birthday! May this special day bring you joy, success, and wonderful memories. Wishing you a year filled with happiness and achievements!",
+            'new year': "🎊 Happy New Year! May this year bring you new opportunities, success, and happiness. Here's to fresh starts and exciting adventures ahead!",
+            'success': "🌟 Congratulations on your success! Your hard work and dedication have truly paid off. Wishing you continued success in all your future endeavors!",
+            'graduation': "🎓 Congratulations on your graduation! This is just the beginning of an amazing journey. Wishing you all the best in your future career!",
+            'wedding': "💒 Congratulations on your wedding! Wishing you a lifetime of love, laughter, and happiness together!",
+            'holiday': "🎄 Happy Holidays! May this festive season bring you warmth, joy, and precious moments with loved ones!",
+        }
+        
+        for key, wish in wishes.items():
+            if key in occasion_lower:
+                return wish
+        
+        return f"🎉 Wishing you all the best for {occasion}! May it be filled with joy, success, and wonderful moments!"
+    
+    async def tell_joke(self, **kwargs) -> str:
+        """Tell a programming or tech joke.
+        
+        Returns:
+            A joke
+        """
+        jokes = [
+            "Why do programmers prefer dark mode? Because light attracts bugs! 🐛",
+            "Why did the programmer quit his job? Because he didn't get arrays! 💰",
+            "How many programmers does it take to change a light bulb? None, that's a hardware problem! 💡",
+            "Why do Java developers wear glasses? Because they don't C#! 👓",
+            "What's a programmer's favorite hangout place? Foo Bar! 🍺",
+            "Why did the developer go broke? Because he used up all his cache! 💸",
+            "What do you call a programmer from Finland? Nerdic! 🇫🇮",
+            "Why do programmers always mix up Halloween and Christmas? Because Oct 31 == Dec 25! 🎃🎄",
+            "What's the object-oriented way to become wealthy? Inheritance! 💰",
+            "Why did the programmer get stuck in the shower? The shampoo bottle said: Lather, Rinse, Repeat! 🚿"
+        ]
+        
+        import random
+        return random.choice(jokes)
 
 
 # Global instance
