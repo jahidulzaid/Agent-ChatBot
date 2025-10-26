@@ -1,0 +1,267 @@
+"""FastAPI application - main entry point."""
+import logging
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
+import aiofiles
+import os
+from pathlib import Path
+import uuid
+
+from app.config import settings
+from app.agents.react_agent import react_agent
+from app.rag.vector_store import vector_store
+from app.rag.document_processor import document_processor
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO if settings.DEBUG else logging.WARNING,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Create FastAPI app
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    description="Agentic RAG Chatbot with reasoning and tool use capabilities"
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# Pydantic models
+class ChatRequest(BaseModel):
+    """Chat request model."""
+    message: str
+    conversation_history: Optional[List[Dict[str, str]]] = None
+    use_rag: bool = True
+
+
+class ChatResponse(BaseModel):
+    """Chat response model."""
+    answer: str
+    reasoning_trace: List[Dict[str, Any]]
+    iterations: int
+
+
+class DocumentUploadResponse(BaseModel):
+    """Document upload response."""
+    filename: str
+    chunks_created: int
+    message: str
+
+
+class DocumentSearchRequest(BaseModel):
+    """Document search request."""
+    query: str
+    top_k: int = 5
+
+
+class DocumentSearchResponse(BaseModel):
+    """Document search response."""
+    results: List[Dict[str, Any]]
+
+
+class SystemStatus(BaseModel):
+    """System status model."""
+    status: str
+    version: str
+    total_documents: int
+    available_tools: List[str]
+
+
+# API Routes
+@app.get("/")
+async def root():
+    """Root endpoint."""
+    return {
+        "message": "Agentic RAG Chatbot API",
+        "version": settings.APP_VERSION,
+        "docs": "/docs"
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "service": settings.APP_NAME}
+
+
+@app.get("/status", response_model=SystemStatus)
+async def get_status():
+    """Get system status."""
+    stats = vector_store.get_collection_stats()
+    from app.tools.agent_tools import agent_tools
+    
+    return SystemStatus(
+        status="operational",
+        version=settings.APP_VERSION,
+        total_documents=stats['total_documents'],
+        available_tools=list(agent_tools.tools.keys())
+    )
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    """Chat with the agent.
+    
+    The agent will use RAG (if enabled) and can use tools to answer questions.
+    """
+    try:
+        logger.info(f"Received chat request: {request.message[:100]}")
+        
+        # Run the agent
+        result = await react_agent.run(
+            user_message=request.message,
+            conversation_history=request.conversation_history or []
+        )
+        
+        return ChatResponse(
+            answer=result['answer'],
+            reasoning_trace=result['reasoning_trace'],
+            iterations=result['iterations']
+        )
+    except Exception as e:
+        logger.error(f"Error in chat endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/chat/stream")
+async def chat_stream(request: ChatRequest):
+    """Stream chat responses."""
+    try:
+        async def generate():
+            result = await react_agent.run(
+                user_message=request.message,
+                conversation_history=request.conversation_history or []
+            )
+            
+            # Stream the answer character by character
+            for char in result['answer']:
+                yield char
+        
+        return StreamingResponse(generate(), media_type="text/plain")
+    except Exception as e:
+        logger.error(f"Error in stream endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/documents/upload", response_model=DocumentUploadResponse)
+async def upload_document(file: UploadFile = File(...)):
+    """Upload and process a document.
+    
+    Supported formats: PDF, DOCX, TXT, MD
+    """
+    try:
+        # Validate file type
+        allowed_extensions = ['.pdf', '.docx', '.txt', '.md']
+        file_ext = Path(file.filename).suffix.lower()
+        
+        if file_ext not in allowed_extensions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type. Allowed: {', '.join(allowed_extensions)}"
+            )
+        
+        # Save file
+        upload_dir = Path("./data/uploads")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        file_id = str(uuid.uuid4())
+        file_path = upload_dir / f"{file_id}_{file.filename}"
+        
+        async with aiofiles.open(file_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+        
+        logger.info(f"Saved file: {file_path}")
+        
+        # Process document
+        documents = document_processor.process_file(str(file_path))
+        
+        # Add to vector store
+        texts = [doc['text'] for doc in documents]
+        metadatas = [doc['metadata'] for doc in documents]
+        
+        vector_store.add_documents(texts=texts, metadatas=metadatas)
+        
+        logger.info(f"Processed and stored {len(documents)} chunks from {file.filename}")
+        
+        return DocumentUploadResponse(
+            filename=file.filename,
+            chunks_created=len(documents),
+            message=f"Successfully processed {file.filename} into {len(documents)} chunks"
+        )
+    except Exception as e:
+        logger.error(f"Error uploading document: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/documents/search", response_model=DocumentSearchResponse)
+async def search_documents(request: DocumentSearchRequest):
+    """Search through uploaded documents."""
+    try:
+        results = vector_store.search(request.query, n_results=request.top_k)
+        
+        return DocumentSearchResponse(results=results)
+    except Exception as e:
+        logger.error(f"Error searching documents: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/documents/stats")
+async def get_document_stats():
+    """Get statistics about the document collection."""
+    try:
+        stats = vector_store.get_collection_stats()
+        return stats
+    except Exception as e:
+        logger.error(f"Error getting document stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/documents/clear")
+async def clear_documents():
+    """Clear all documents from the vector store."""
+    try:
+        # Delete the collection and recreate it
+        vector_store.client.delete_collection("documents")
+        vector_store.collection = vector_store.client.create_collection(
+            name="documents",
+            metadata={"hnsw:space": "cosine"}
+        )
+        logger.info("Cleared all documents from vector store")
+        
+        return {"message": "All documents cleared successfully"}
+    except Exception as e:
+        logger.error(f"Error clearing documents: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/tools")
+async def get_available_tools():
+    """Get list of available tools the agent can use."""
+    from app.tools.agent_tools import agent_tools
+    return {
+        "tools": agent_tools.get_tool_descriptions()
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "main:app",
+        host=settings.API_HOST,
+        port=settings.API_PORT,
+        reload=settings.DEBUG
+    )
