@@ -2,10 +2,10 @@
 nixPkgs = ["python311", "gcc"]
 
 [phases.install]
-cmds = ["python -m pip install --upgrade pip setuptools wheel", "cd backend && python -m pip install -r requirements.txt"]
+cmds = ["uv pip install --upgrade pip", "cd backend && uv pip install -r requirements.txt"]
 
 [phases.build]
 cmds = ["cd backend && mkdir -p data/chromadb data/uploads"]
 
 [start]
-cmd = "cd backend && python main.py"
+cmd = "cd backend && python3 main.py"
