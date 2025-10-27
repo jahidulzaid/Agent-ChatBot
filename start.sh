@@ -1,5 +1,5 @@
 #!/bin/bash
-# Railway start script for backend
-
-cd backend
-python main.py
+# Install dependencies from backend folder
+pip install -r backend/requirements.txt
+# Start the application
+cd backend && python main.py
