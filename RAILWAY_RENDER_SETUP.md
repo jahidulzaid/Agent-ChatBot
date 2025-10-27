@@ -17,11 +17,16 @@ Render's free tier (512MB RAM) is too small for the backend. **Solution**: Deplo
 
 4. **Select Repository**: `jahidulzaid/Agent-ChatBot`
 
-5. **Configure Service**:
-   - Click on the deployed service
-   - Go to **Settings**
-   - Set **Root Directory**: `backend`
-   - **No build command needed** (Railway auto-detects Python)
+5. **Railway will auto-deploy** using the configuration files:
+   - `railway.json` - Railway configuration
+   - `nixpacks.toml` - Build configuration  
+   - `Procfile` - Start command
+   
+   These files are already in your repo and tell Railway to:
+   - Install Python 3.11
+   - Go to `backend` folder
+   - Install dependencies
+   - Run `python main.py`
 
 6. **Add Environment Variables**:
    ```
