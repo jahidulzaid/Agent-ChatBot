@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     CHROMA_PERSIST_DIRECTORY: str = "./data/chromadb"
     
     # Embeddings
-    EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+    EMBEDDING_MODEL: str = "sentence-transformers/paraphrase-MiniLM-L3-v2"
     
     # Agent Configuration
     MAX_ITERATIONS: int = 8
