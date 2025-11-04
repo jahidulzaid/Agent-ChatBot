@@ -48,3 +48,4 @@ build/
 # Package managers
 package-lock.json
 yarn.lock
+VERCEL_OOM_SOLUTION.md

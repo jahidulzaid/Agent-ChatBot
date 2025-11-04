@@ -1,0 +1,30 @@
+# Lightweight requirements for Vercel deployment
+# Excludes heavy ML dependencies that cause OOM errors
+
+# Core Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+pydantic==2.5.3
+pydantic-settings==2.1.0
+aiofiles==23.2.1
+httpx==0.26.0
+
+# Lightweight alternatives or only essentials
+openai==1.10.0
+tiktoken==0.5.2
+
+# Document Processing (lighter versions)
+pypdf==3.17.4
+python-docx==1.1.0
+markdown==3.5.2
+
+# Data Processing
+pandas==2.1.4
+
+# Environment & Config
+python-dotenv==1.0.0
+
+# CORS & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4

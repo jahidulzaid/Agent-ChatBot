@@ -233,12 +233,40 @@ npm run lint
 npm run format
 ```
 
-## � Deployment
+## 📝 Deployment
+
+### ⚠️ Important: Platform Compatibility
+
+**NOT Compatible with Vercel** ❌
+- This app uses ML models (sentence-transformers, ChromaDB) that cause OOM errors on Vercel
+- Vercel's serverless architecture doesn't support persistent vector databases
+- Build process requires 8GB+ RAM for dependencies
+
+**✅ Recommended Platforms:**
+
+1. **Railway** (⭐ Best Choice)
+   - Handles heavy ML dependencies
+   - Persistent storage for ChromaDB
+   - Easy GitHub integration
+   - See [RAILWAY_DEPLOY.md](RAILWAY_DEPLOY.md)
+
+2. **Render**
+   - Free tier available
+   - Good for ML/AI apps
+   - See [RENDER_DEPLOY.md](RENDER_DEPLOY.md)
+
+3. **Docker on VPS** (DigitalOcean, AWS, etc.)
+   - Full control
+   - See [DEPLOYMENT.md](DEPLOYMENT.md)
+
+### Quick Deploy to Railway
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/jahidulzaid/Agent-ChatBot)
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions for:
 
-- 🚂 Railway (Recommended for beginners)
-- 🎨 Render (Free tier available)
+- 🚂 Railway (Recommended for beginners) - [Quick Guide](RAILWAY_DEPLOY.md)
+- 🎨 Render (Free tier available) - [Quick Guide](RENDER_DEPLOY.md)
 - ☁️ AWS ECS (Production grade)
 - 🌊 DigitalOcean (Balanced approach)
 - 🐳 Docker on any VPS
