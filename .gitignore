@@ -176,7 +176,7 @@ rustup-init.exe
 
 # Backend data (comment out if you want to commit test data)
 backend/data/chromadb/
-backend/data/uploads/
+# backend/data/uploads/
 
 # Frontend build
 frontend/dist/
