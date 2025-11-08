@@ -1,0 +1,137 @@
+Jahidul Islam Dhaka, Bangladesh | +8801886433466 | jahidul.cse.gub@gmail.com | jahidulzaid.github.io | linkedin.com/in/jahidulzaid | github.com/jahidulzaid
+
+Last updated in November 2025
+
+Professional Summary AI-focused Computer Science graduate specializing in AI agent and Chatbot development and LLM-based agentic systems. Hands-on experience building ReAct and CodeAct agents for competition-level code generation, automated reasoning, and multi-step task execution. Proficient in Python (LangChain, LangGraph, DSPy), RAG architectures, and agent orchestration frameworks. Demonstrated success in developing intelligent agents that leverage tool use, chain-of-thought reasoning, and action planning. Passionate about advancing autonomous agent capabilities and building production-ready AI systems that solve complex real-world problems.
+
+Education B.Sc. in Computer Science and Engineering (Expected Jan 2026) Green University of Bangladesh
+
+CGPA: 3.50/4.00 (1 Semester remaining)
+
+Higher Secondary Certificate (Science) (2019) Barkota H/S College, Comilla Board
+
+GPA: 5.00/5.00
+
+Secondary School Certificate (Science) (2017) Lalpur Nazrul Islam High School, Comilla Board
+
+GPA: 4.95/5.00
+
+Thesis & Research Optimizing Retrieval-Augmented Generation (RAG) Models Researching RAG optimizations for knowledge graphs, focusing on improved retrieval pipelines and embeddings to enhance temporal reasoning and answer accuracy. Supervised by Professor Dr. Md. Saiful Azad, Dean, Faculty of Science and Engineering (FSE), Green University of Bangladesh.
+
+Publications PyBangla at BLP-2025 Task 2: Enhancing Bangla-to-Python Code Generation with Iterative Self-Correction and Multilingual Agents Accepted (6-11-2025), BLP Workshop @ AACL-IJCNLP 2025 (A* Conference) Jahidul Islam, Md Ataullha, Saiful Azad.
+
+Speculative ReActRAG: Hybrid Multi-Perspective Retrieval-Augmented Generation with Structured Validations. Under Review at IEEE
+
+Experience AI Agent Developer (Research & Development) (2025 -- Present) Independent Research Projects
+
+Developed ReAct (Reasoning + Acting) agents for autonomous problem-solving using LangChain and LangGraph, implementing tool-calling workflows with chain-of-thought reasoning for multi-step task execution
+
+Built PyBanglaCodeAct agents for competition-level code generation, achieving automated solution generation for algorithmic problems through iterative refinement and execution feedback loops
+
+Created automated research paper evaluation pipeline: PDF text extraction, LLM-based analysis for novelty/quality/contribution assessment, structured output, and reviewer assignment using OpenAI API
+
+Designed and implemented agent orchestration systems with custom tool integrations, memory management, and state tracking for complex reasoning chains
+
+Optimized agent performance through prompt engineering, retrieval strategies, and dynamic tool selection.
+
+Integrated multiple LLM backends (OpenAI, Anthropic, open-source models via vLLM) with fallback strategies and cost optimization
+
+Organizing Secretary — IEEE Computer Society SB Chapter, Green University (March 2025 -- Present)
+
+Membership Development Coordinator — IEEE SB, Green University (Jan 2024 -- Feb 2025)
+
+Assistant Marriage Registrar & Kazi (2021 -- 2025) Office Daudkandi Pourashava (4, 5 & 6 Ward), Daudkandi, Cumilla
+
+Assisted in official document processing related to marriage registration.
+
+Maintained accurate marriage registers and records. Supported various administrative and legal formalities related to matrimonial affairs.
+
+Skills AI Agent Development: ReAct Agents, CodeAct Agents, Tool-calling Workflows, Agent Orchestration, Multi-Agent Systems, Autonomous Task Execution LLM & AI Frameworks: LangChain, LangGraph, DSPy, vLLM, Prompt Engineering, Chain-of-Thought Reasoning, Function Calling, RAG (Retrieval-Augmented Generation) Programming: Python, C++, Java, SQL (MySQL), JavaScript, PHP Python Libraries: NumPy, Pandas, Scikit-learn, Hugging Face, OpenAI API, Anthropic API, PyPDF2 Machine Learning & AI: LLMs (GPT, Claude, Open-source models), Model Inference (vLLM), Knowledge Graphs, Embedding Models, Vector Databases, Fine-tuning Web Development: Django, Laravel, HTML, CSS, JavaScript Tools & Technologies: Git, GitHub, Docker, REST APIs, JSON, CSV Processing, Linux Soft Skills: Problem Solving, Design, Research, Technical Communication, Team Collaboration, Adaptability
+
+Projects Automated Research Paper Evaluation & Reviewer Assignment System
+
+Built end-to-end LLM-powered pipeline for conference paper review and evaluation from PDF files
+
+Implemented PDF text extraction and preprocessing module for academic paper parsing
+
+Designed advanced prompt engineering strategies to extract structured assessments: novelty, format quality, contribution, and overall paper quality from LLM responses
+
+Created multi-column CSV export system for systematic evaluation data management and analysis
+
+Integrated OpenAI API with optimized rate limiting, error handling, and structured output parsing
+
+Achieved consistent structured responses through careful prompt design and JSON schema validation
+
+Competition-Level PyBanglaCodeAct Agent System (github.com/jahidulzaid/PyBanglaCodeActAgent)
+
+Developed autonomous coding agent using CodeAct architecture for competitive programming problem-solving
+
+Implemented iterative code generation, execution, debugging, and refinement loops with LLM-powered reasoning
+
+Integrated code execution sandbox, test case validation, and error feedback mechanisms
+
+Achieved successful automated solution generation for algorithmic challenges using Python and LangChain
+
+Incorporated ReAct-style reasoning traces for transparent decision-making and action planning
+
+Shared Task 2 -- BLP Workshop 2025 (blp-workshop.github.io/sharedtasks)
+
+Ranked top 10 in dev phase and 17th in test phase for Bangla Language Processing (BLP) Workshop 2025
+
+Built bilingual (Bangla-English) LLM agent system for complex text understanding and generation tasks
+
+Implemented agentic workflows with Hugging Face Transformers, LangChain, and custom prompt strategies
+
+Designed multi-step reasoning pipeline for improved accuracy in low-resource language processing
+
+Agentic RAG Chatbot (github.com/jahidulzaid/Agent-ChatBot)
+
+Conversational chatbot with open-source LLM models and context-aware conversation management
+
+CodeCraft-Academy (Learning Platform) (github.com/jahidulzaid/CodeCraft-Academy)
+
+Laravel-based platform for interactive programming learning
+
+Role-based access, quiz system, progress tracking
+
+Multi-language course support with Online Judge
+
+E-Commerce App: SuperShop (ijahidul-shop.wasmer.app)
+
+Responsive Laravel-based e-commerce platform
+
+Features: user login, cart, orders, admin panel
+
+Implemented secure routing and dynamic content rendering
+
+Intrusion Detection System (IDS) (github.com/jahidulzaid/Intrusion-Detection-System)
+
+CLI-based Python project using machine learning
+
+Detects anomalies in datasets and rule-matching
+
+CLI-Based Search Engine (github.com/jahidulzaid/CLI-Search-Engine)
+
+C++ implementation using Trie and Hashing
+
+Supports prefix, exact, and KMP substring search
+
+Training & Certifications Certificate — Python with Django (EDGE - ICT Division) (July 2025) Certificate — PHP with Laravel (BASIS-BITM) (August 2023) 1st Runner-Up — IT Olympiad, GUB CSE Carnival (2024)
+
+Extracurricular Activities
+
+Active participant in university programming contests and hackathons
+
+Solved 500+ competitive programming problems on platforms like Codeforces (@jahidulzaid), Beecrowd, VJudge (@jahidulzaid), HackerRank, and LeetCode
+
+Volunteer for technical workshops and coding bootcamps at Green University
+
+Member, Green University Computer Club (GUCPC)
+
+Organized and hosted AI/ML study groups and peer learning sessions
+
+Contributor to open-source projects and online coding communities
+
+Engaged in community outreach for STEM education and digital literacy
+
+Language Proficiency Bangla: Fluent (Reading, Writing, Speaking) English: Fluent (Reading, Writing, Speaking) – WSDA (New Zealand) Certified
