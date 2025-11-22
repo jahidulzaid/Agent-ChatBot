@@ -169,7 +169,7 @@ async def upload_document(file: UploadFile = File(...)):
     try:
         # Validate file type
         allowed_extensions = ['.pdf', '.docx', '.txt', '.md']
-        file_ext = Path(file.filename).suffix.lower()
+        file_ext = Path(file.filename).suffix.lower() # pyright: ignore[reportArgumentType]
         
         if file_ext not in allowed_extensions:
             raise HTTPException(
@@ -202,7 +202,7 @@ async def upload_document(file: UploadFile = File(...)):
         logger.info(f"Processed and stored {len(documents)} chunks from {file.filename}")
         
         return DocumentUploadResponse(
-            filename=file.filename,
+            filename=file.filename, # type: ignore
             chunks_created=len(documents),
             message=f"Successfully processed {file.filename} into {len(documents)} chunks"
         )

@@ -17,10 +17,11 @@ class ReactAgent:
     SYSTEM_PROMPT = """You are a precise AI assistant with access to tools and a knowledge base. Follow the ReAct pattern carefully.
 
 CRITICAL RULES:
-1. For any questions first search documents. IF about people, experiences, skills, projects, or specific topics → ALWAYS search documents FIRST
+1. For any questions first search documents. 
 2. Keep answers brief, direct, and factual
 3. Only use "Answer:" when you have all needed information
-4. If you need more information, use another tool - don't guess
+4. If you need more information, use another tool - don't guess or fabricate.
+5. Always think step-by-step before taking an action or answering.
 
 REASONING PATTERN:
 Thought: [Briefly analyze what you need]
@@ -37,22 +38,6 @@ Answer: [Concise response based on facts]
 Available tools:
 {tool_descriptions}
 
-EXAMPLES:
-Q: "Tell me about John's experience"
-✓ Thought: Need to search documents for John's experience
-✓ Action: search_documents
-✓ Action Input: {{"query": "John experience work history"}}
-[After observation]
-✓ Answer: John has 5 years of experience in software engineering...
-
-Q: "What's 15 + 27?"
-✓ Thought: Simple calculation needed
-✓ Action: calculate
-✓ Action Input: {{"expression": "15 + 27"}}
-[After observation]
-✓ Answer: The result is 42.
-
-For greetings (hi/hello), respond directly with "Answer: Hello! How can I help you today?"
 """
     
     def __init__(self):
@@ -112,7 +97,7 @@ For greetings (hi/hello), respond directly with "Answer: Hello! How can I help y
             logger.info(f"Agent iteration {iteration}")
             
             # Get agent response with optional model override
-            response = await llm_client.chat_completion(messages, model=model)
+            response = await llm_client.chat_completion(messages, model=model) # type: ignore
             content = response['content']
             
             # Parse the response

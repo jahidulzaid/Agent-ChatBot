@@ -94,7 +94,7 @@ class AgentTools:
         Returns:
             Tool function
         """
-        return self.tools.get(tool_name)
+        return self.tools.get(tool_name) # pyright: ignore[reportReturnType]
     
     async def search_documents(self, query: str, **kwargs) -> str:
         """Search documents in the vector store.
@@ -237,7 +237,7 @@ class AgentTools:
             search_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
             return f"**Web Search:** {query}\n\nError: {str(e)}\nClick here to search manually: {search_url}"
 
-    async def greet(self, name: str = None, **kwargs) -> str:
+    async def greet(self, name: str = None, **kwargs) -> str: # pyright: ignore[reportArgumentType]
         """Generate a personalized greeting.
         
         Args:
