@@ -122,7 +122,7 @@ Agent-ChatBot/
 │   ├── Dockerfile           # Frontend Docker configuration
 │   └── package.json         # Node dependencies
 ├── docker-compose.yml       # Multi-container setup
-├── DEPLOYMENT.md            # Comprehensive deployment guide
+├── ARCHITECTURE.md          # Detailed system architecture
 └── README.md                # This file
 ```
 
@@ -202,9 +202,9 @@ DEBUG=True
 - Mistral 7B (Mistral)
 - Qwen 2 7B (Qwen)
 
-## � Documentation
+## 📖 Documentation
 
-- **[Deployment Guide](DEPLOYMENT.md)**: Complete guide for deploying to production
+- **[Architecture Guide](ARCHITECTURE.md)**: Detailed system architecture and diagrams
 - **[API Documentation](http://localhost:8000/docs)**: Interactive API docs (when backend is running)
 
 ## 🛠️ Development
@@ -248,32 +248,25 @@ npm run format
    - Handles heavy ML dependencies
    - Persistent storage for ChromaDB
    - Easy GitHub integration
-   - See [RAILWAY_DEPLOY.md](RAILWAY_DEPLOY.md)
 
 2. **Render**
    - Free tier available
    - Good for ML/AI apps
-   - See [RENDER_DEPLOY.md](RENDER_DEPLOY.md)
 
 3. **Docker on VPS** (DigitalOcean, AWS, etc.)
    - Full control
-   - See [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ### Quick Deploy to Railway
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/jahidulzaid/Agent-ChatBot)
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions for:
+For detailed deployment instructions, see the platform-specific documentation:
 
-- 🚂 Railway (Recommended for beginners) - [Quick Guide](RAILWAY_DEPLOY.md)
-- 🎨 Render (Free tier available) - [Quick Guide](RENDER_DEPLOY.md)
+- 🚂 Railway (Recommended for beginners)
+- 🎨 Render (Free tier available)
 - ☁️ AWS ECS (Production grade)
 - 🌊 DigitalOcean (Balanced approach)
 - 🐳 Docker on any VPS
-
-## 📝 License
-
-MIT License - feel free to use this project for your portfolio!
 
 ## 🤝 Contributing
 
