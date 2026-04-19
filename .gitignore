@@ -9,7 +9,6 @@ ehthumbs.db
 *.njsproj
 *.sln
 *.sw?
-.vscode/*
 !.vscode/extensions.json
 
 # Python
@@ -60,8 +59,6 @@ backend/dist/
 backend/build/
 
 # Env and local secrets
-.env
-.env.*
 !.env.example
 backend/.env
 backend/.env.*
@@ -84,3 +81,7 @@ pids
 backend/data/chromadb/
 backend/data/uploads/
 *.sqlite3
+temp_auto_push.bat
+temp_interactive_push.bat
+branch_structure.json
+config.bat
