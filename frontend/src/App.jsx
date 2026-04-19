@@ -8,7 +8,7 @@ import { systemService } from './services/api';
 function App() {
   const [systemStatus, setSystemStatus] = useState(null);
   const [modelCatalog, setModelCatalog] = useState(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [conversationHistory, setConversationHistory] = useState([]);
   const [selectedProvider, setSelectedProvider] = useState('openrouter');
   const [selectedModel, setSelectedModel] = useState('openai/gpt-4o-mini-2024-07-18');
@@ -105,6 +105,7 @@ function App() {
           conversationHistory={conversationHistory}
           onNewMessage={handleNewMessage}
           onClearChat={handleClearChat}
+          onOpenUpload={() => setIsSidebarOpen(true)}
           selectedModel={selectedModel}
           selectedProvider={selectedProvider}
         />

@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader, Bot, User } from 'lucide-react';
+import { Send, Loader, Bot, User, Upload } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { chatService } from '../services/api';
 import './ChatInterface.css';
 
-function ChatInterface({ conversationHistory, onNewMessage, selectedModel, selectedProvider }) {
+function ChatInterface({ conversationHistory, onNewMessage, onOpenUpload, selectedModel, selectedProvider }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -24,6 +26,24 @@ function ChatInterface({ conversationHistory, onNewMessage, selectedModel, selec
     }
   }, [conversationHistory]);
 
+  useEffect(() => {
+    if (!textareaRef.current) {
+      return;
+    }
+
+    textareaRef.current.style.height = 'auto';
+    textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`;
+  }, [input]);
+
+  const handleInputKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!isLoading && input.trim()) {
+        handleSubmit(e);
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -33,6 +53,7 @@ function ChatInterface({ conversationHistory, onNewMessage, selectedModel, selec
 
     // Add user message
     const newUserMessage = {
+      id: `user-${Date.now()}`,
       role: 'user',
       content: userMessage,
       timestamp: new Date().toISOString(),
@@ -42,36 +63,106 @@ function ChatInterface({ conversationHistory, onNewMessage, selectedModel, selec
 
     setIsLoading(true);
 
+    const assistantMessageId = `assistant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const initialAssistantMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+      reasoning: [],
+      iterations: 0,
+      isStreaming: true,
+    };
+    setMessages((prev) => [...prev, initialAssistantMessage]);
+
     try {
-      const response = await chatService.sendMessage(
+      const response = await chatService.streamMessage(
         userMessage,
         conversationHistory,
         selectedModel,
-        selectedProvider
+        selectedProvider,
+        true,
+        (event) => {
+          if (event.event === 'trace' && event.step) {
+            const step = event.step;
+            setMessages((prev) =>
+              prev.map((msg) => {
+                if (msg.id !== assistantMessageId) {
+                  return msg;
+                }
+
+                const nextReasoning = [...(msg.reasoning || []), step];
+                const nextIterations = Math.max(msg.iterations || 0, step.iteration || 0);
+                const nextContent = step.type === 'answer' ? step.content : msg.content;
+
+                return {
+                  ...msg,
+                  reasoning: nextReasoning,
+                  iterations: nextIterations,
+                  content: nextContent,
+                };
+              })
+            );
+          }
+
+          if (event.event === 'final' && event.result) {
+            const result = event.result;
+            setMessages((prev) =>
+              prev.map((msg) => {
+                if (msg.id !== assistantMessageId) {
+                  return msg;
+                }
+
+                return {
+                  ...msg,
+                  content: result.answer || msg.content,
+                  reasoning: result.reasoning_trace || msg.reasoning,
+                  iterations: result.iterations || msg.iterations,
+                  provider: result.provider,
+                  model: result.model,
+                  isStreaming: false,
+                };
+              })
+            );
+          }
+        }
       );
 
-      // Add assistant message
-      const assistantMessage = {
-        role: 'assistant',
-        content: response.answer,
-        timestamp: new Date().toISOString(),
-        reasoning: response.reasoning_trace,
-        iterations: response.iterations,
-        provider: response.provider,
-        model: response.model,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id !== assistantMessageId) {
+            return msg;
+          }
+
+          return {
+            ...msg,
+            content: response.answer,
+            reasoning: response.reasoning_trace,
+            iterations: response.iterations,
+            provider: response.provider,
+            model: response.model,
+            isStreaming: false,
+          };
+        })
+      );
+
       onNewMessage('assistant', response.answer);
     } catch (error) {
       console.error('Chat error:', error);
-      const apiDetail = error.response?.data?.detail;
-      const errorMessage = {
-        role: 'assistant',
-        content: apiDetail || 'Sorry, I encountered an error. Please check your provider/API key setup and try again.',
-        timestamp: new Date().toISOString(),
-        isError: true,
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      const errorDetail = error.message || 'Sorry, I encountered an error. Please check your provider/API key setup and try again.';
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id !== assistantMessageId) {
+            return msg;
+          }
+          return {
+            ...msg,
+            content: errorDetail,
+            isError: true,
+            isStreaming: false,
+          };
+        })
+      );
     } finally {
       setIsLoading(false);
     }
@@ -82,13 +173,15 @@ function ChatInterface({ conversationHistory, onNewMessage, selectedModel, selec
     const showReasoning = message.reasoning && message.reasoning.length > 0;
 
     return (
-      <div key={index} className={`message ${isUser ? 'user' : 'assistant'}`}>
+      <div key={message.id || index} className={`message ${isUser ? 'user' : 'assistant'}`}>
         <div className="message-avatar">
           {isUser ? <User size={20} /> : <Bot size={20} />}
         </div>
         <div className="message-content">
           <div className="message-text">
-            <ReactMarkdown>{message.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {message.content || (message.isStreaming ? 'Working on your request...' : '')}
+            </ReactMarkdown>
           </div>
           {message.provider && message.model && (
             <div className="message-meta">
@@ -96,8 +189,8 @@ function ChatInterface({ conversationHistory, onNewMessage, selectedModel, selec
             </div>
           )}
           {showReasoning && (
-            <details className="reasoning-trace">
-              <summary>🧠 View reasoning process ({message.iterations} iterations)</summary>
+            <details className="reasoning-trace" open={Boolean(message.isStreaming)}>
+              <summary>reasoning trace ({message.iterations} iterations)</summary>
               <div className="reasoning-content">
                 {message.reasoning.map((step, idx) => (
                   <div key={idx} className={`reasoning-step ${step.type}`}>
@@ -116,6 +209,12 @@ function ChatInterface({ conversationHistory, onNewMessage, selectedModel, selec
                       </div>
                     )}
                     {step.type === 'observation' && (
+                      <div className="step-content">{step.content}</div>
+                    )}
+                    {step.type === 'answer' && (
+                      <div className="step-content">{step.content}</div>
+                    )}
+                    {step.type === 'system' && (
                       <div className="step-content">{step.content}</div>
                     )}
                   </div>
@@ -164,6 +263,7 @@ function ChatInterface({ conversationHistory, onNewMessage, selectedModel, selec
                 <span></span>
                 <span></span>
               </div>
+              <div className="message-meta">Agent is thinking and may call tools...</div>
             </div>
           </div>
         )}
@@ -171,13 +271,24 @@ function ChatInterface({ conversationHistory, onNewMessage, selectedModel, selec
       </div>
 
       <form className="input-form" onSubmit={handleSubmit}>
-        <input
-          type="text"
+        <button
+          type="button"
+          onClick={onOpenUpload}
+          className="attach-button"
+          title="Upload documents"
+          disabled={isLoading}
+        >
+          <Upload size={18} />
+        </button>
+        <textarea
+          ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleInputKeyDown}
           placeholder="Ask me anything..."
           disabled={isLoading}
           className="message-input"
+          rows={1}
         />
         <button
           type="submit"
