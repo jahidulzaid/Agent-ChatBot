@@ -1,6 +1,7 @@
 """FastAPI application - main entry point."""
 import logging
 import json
+import os
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -289,9 +290,10 @@ async def get_available_tools():
 
 if __name__ == "__main__":
     import uvicorn
+    api_port = int(os.getenv("PORT", str(settings.API_PORT)))
     uvicorn.run(
         "main:app",
         host=settings.API_HOST,
-        port=settings.API_PORT,
+        port=api_port,
         reload=settings.DEBUG
     )

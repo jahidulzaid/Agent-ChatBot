@@ -201,7 +201,7 @@ WEB_SEARCH_PROVIDER=tavily
 MAX_ITERATIONS=8
 TEMPERATURE=0.3
 MAX_TOKENS=1000
-DEBUG=True
+DEBUG=False
 ```
 
 ### Available Models
@@ -271,7 +271,33 @@ npm run format
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/jahidulzaid/Agent-ChatBot)
 
-For detailed deployment instructions, see the platform-specific documentation:
+Use two Railway services from the same repo (monorepo setup):
+
+1. Create a new Railway project from this GitHub repository.
+2. Add service `backend`:
+    - Root Directory: `backend`
+    - Railway will use `backend/railway.json` and `backend/Dockerfile`.
+    - Set required variables:
+       - `OPENROUTER_API_KEY` (or `OPENAI_API_KEY`)
+       - `LLM_PROVIDER` (`openrouter`, `openai`, or `auto`)
+       - `TAVILY_API_KEY` (if using Tavily web search)
+    - Set CORS for your frontend URL:
+       - `CORS_ORIGINS=https://<your-frontend-domain>`
+3. Deploy backend once and copy its public URL, for example:
+    - `https://agent-chatbot-backend-production.up.railway.app`
+4. Add service `frontend`:
+    - Root Directory: `frontend`
+    - Railway will use `frontend/railway.json` and `frontend/Dockerfile`.
+    - Set variable:
+       - `BACKEND_URL=https://<your-backend-domain>`
+5. Deploy frontend and open its public URL.
+
+Notes:
+- Frontend now proxies `/api/*` requests to `BACKEND_URL` via Nginx.
+- Railway dynamic `PORT` is handled automatically in both services.
+- If CORS errors appear, ensure `CORS_ORIGINS` exactly matches the frontend domain (including `https://`).
+
+For detailed deployment instructions on other platforms, see:
 
 - 🚂 Railway (Recommended for beginners)
 - 🎨 Render (Free tier available)

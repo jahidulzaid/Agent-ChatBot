@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "Agentic RAG Chatbot"
     APP_VERSION: str = "1.0.0"
-    DEBUG: bool = True
+    DEBUG: bool = False
     
     # Database
     CHROMA_PERSIST_DIRECTORY: str = "./data/chromadb"
