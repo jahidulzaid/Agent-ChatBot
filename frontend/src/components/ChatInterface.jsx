@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import { chatService } from '../services/api';
 import './ChatInterface.css';
 
-function ChatInterface({ conversationHistory, onNewMessage, onClearChat, selectedModel }) {
+function ChatInterface({ conversationHistory, onNewMessage, selectedModel, selectedProvider }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +43,12 @@ function ChatInterface({ conversationHistory, onNewMessage, onClearChat, selecte
     setIsLoading(true);
 
     try {
-      const response = await chatService.sendMessage(userMessage, conversationHistory, selectedModel);
+      const response = await chatService.sendMessage(
+        userMessage,
+        conversationHistory,
+        selectedModel,
+        selectedProvider
+      );
 
       // Add assistant message
       const assistantMessage = {
@@ -52,14 +57,17 @@ function ChatInterface({ conversationHistory, onNewMessage, onClearChat, selecte
         timestamp: new Date().toISOString(),
         reasoning: response.reasoning_trace,
         iterations: response.iterations,
+        provider: response.provider,
+        model: response.model,
       };
       setMessages((prev) => [...prev, assistantMessage]);
       onNewMessage('assistant', response.answer);
     } catch (error) {
       console.error('Chat error:', error);
+      const apiDetail = error.response?.data?.detail;
       const errorMessage = {
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: apiDetail || 'Sorry, I encountered an error. Please check your provider/API key setup and try again.',
         timestamp: new Date().toISOString(),
         isError: true,
       };
@@ -82,6 +90,11 @@ function ChatInterface({ conversationHistory, onNewMessage, onClearChat, selecte
           <div className="message-text">
             <ReactMarkdown>{message.content}</ReactMarkdown>
           </div>
+          {message.provider && message.model && (
+            <div className="message-meta">
+              {message.provider} • {message.model}
+            </div>
+          )}
           {showReasoning && (
             <details className="reasoning-trace">
               <summary>🧠 View reasoning process ({message.iterations} iterations)</summary>
@@ -124,8 +137,8 @@ function ChatInterface({ conversationHistory, onNewMessage, onClearChat, selecte
         {messages.length === 0 && (
           <div className="welcome-message">
             <Bot size={48} />
-            <h2>Welcome to Agentic RAG Chatbot!</h2>
-            <p>I can help you with information from uploaded documents and perform various tasks.</p>
+            <h2>Welcome to Agentic RAG Studio</h2>
+            <p>Upload documents, query your knowledge base, and switch providers/models for each conversation.</p>
             <div className="example-prompts">
               <button onClick={() => setInput('What documents do you have?')}>
                 What documents do you have?
@@ -133,8 +146,8 @@ function ChatInterface({ conversationHistory, onNewMessage, onClearChat, selecte
               <button onClick={() => setInput('Search for information about...')}>
                 Search for information
               </button>
-              <button onClick={() => setInput('What is the current time?')}>
-                What is the current time?
+              <button onClick={() => setInput('Compare OpenRouter and OpenAI model responses for this query')}>
+                Compare model responses
               </button>
             </div>
           </div>

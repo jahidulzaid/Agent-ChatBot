@@ -43,7 +43,7 @@ function Sidebar({ isOpen, onClose, onStatusUpdate, onClearChat }) {
   };
 
   const handleClearDocuments = async () => {
-    if (!confirm('Are you sure you want to clear all documents?')) return;
+    if (!window.confirm('Are you sure you want to clear all documents?')) return;
 
     try {
       await documentService.clearDocuments();
@@ -64,7 +64,7 @@ function Sidebar({ isOpen, onClose, onStatusUpdate, onClearChat }) {
     <>
       <div className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <h2>📁 Document Manager</h2>
+          <h2>Document Vault</h2>
           <button className="close-btn" onClick={onClose}>
             <X size={20} />
           </button>

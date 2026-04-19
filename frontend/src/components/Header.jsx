@@ -1,15 +1,27 @@
 import { Menu, X, Activity } from 'lucide-react';
 import './Header.css';
 
-function Header({ systemStatus, onToggleSidebar, isSidebarOpen, selectedModel, onModelChange }) {
-  const freeModels = [
-    { id: 'openai/gpt-4o-mini-2024-07-18', name: 'GPT-4o Mini', provider: 'OpenAI' },
-    { id: 'google/gemini-flash-1.5', name: 'Gemini Flash 1.5', provider: 'Google' },
-    { id: 'meta-llama/llama-3.2-3b-instruct:free', name: 'Llama 3.2 3B', provider: 'Meta' },
-    { id: 'microsoft/phi-3-mini-128k-instruct:free', name: 'Phi-3 Mini', provider: 'Microsoft' },
-    { id: 'mistralai/mistral-7b-instruct:free', name: 'Mistral 7B', provider: 'Mistral' },
-    { id: 'qwen/qwen-2-7b-instruct:free', name: 'Qwen 2 7B', provider: 'Qwen' }
-  ];
+function Header({
+  systemStatus,
+  onToggleSidebar,
+  isSidebarOpen,
+  selectedModel,
+  onModelChange,
+  selectedProvider,
+  onProviderChange,
+  modelCatalog,
+}) {
+  const providers = modelCatalog?.providers || ['openrouter', 'openai'];
+  const effectiveProvider = selectedProvider === 'auto'
+    ? modelCatalog?.recommended_provider || 'openrouter'
+    : selectedProvider;
+  const modelOptions = modelCatalog?.models_by_provider?.[effectiveProvider] || [];
+
+  const formatProviderLabel = (provider) => {
+    if (provider === 'openrouter') return 'OpenRouter';
+    if (provider === 'openai') return 'OpenAI';
+    return 'Auto';
+  };
 
   return (
     <header className="header">
@@ -17,17 +29,31 @@ function Header({ systemStatus, onToggleSidebar, isSidebarOpen, selectedModel, o
         <button className="toggle-sidebar-btn" onClick={onToggleSidebar}>
           {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
-        <h1 className="header-title">🤖 Agentic RAG Chatbot</h1>
+        <h1 className="header-title">Agentic RAG Studio</h1>
       </div>
       
       <div className="header-center">
+        <select
+          className="provider-selector"
+          value={selectedProvider}
+          onChange={(e) => onProviderChange(e.target.value)}
+          title="Select LLM provider"
+        >
+          {providers.map((provider) => (
+            <option key={provider} value={provider}>
+              {formatProviderLabel(provider)}
+            </option>
+          ))}
+        </select>
+
         <select 
           className="model-selector" 
           value={selectedModel}
           onChange={(e) => onModelChange(e.target.value)}
-          title="Select AI Model"
+          title="Select AI model"
+          disabled={modelOptions.length === 0}
         >
-          {freeModels.map((model) => (
+          {modelOptions.map((model) => (
             <option key={model.id} value={model.id}>
               {model.name} ({model.provider})
             </option>
@@ -36,6 +62,12 @@ function Header({ systemStatus, onToggleSidebar, isSidebarOpen, selectedModel, o
       </div>
       
       <div className="header-right">
+        {systemStatus && (
+          <div className="provider-health">
+            <span className={`key-dot ${systemStatus.has_openrouter_key ? 'up' : 'down'}`} title="OpenRouter key" />
+            <span className={`key-dot ${systemStatus.has_openai_key ? 'up' : 'down'}`} title="OpenAI key" />
+          </div>
+        )}
         {systemStatus && (
           <div className="status-badge">
             <Activity size={16} />

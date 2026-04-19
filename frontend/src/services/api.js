@@ -10,7 +10,7 @@ const api = axios.create({
 });
 
 export const chatService = {
-  sendMessage: async (message, conversationHistory = [], model = null) => {
+  sendMessage: async (message, conversationHistory = [], model = null, provider = null) => {
     const payload = {
       message,
       conversation_history: conversationHistory,
@@ -20,12 +20,16 @@ export const chatService = {
     if (model) {
       payload.model = model;
     }
+
+    if (provider) {
+      payload.provider = provider;
+    }
     
     const response = await api.post('/chat', payload);
     return response.data;
   },
 
-  streamMessage: async (message, conversationHistory = [], model = null) => {
+  streamMessage: async (message, conversationHistory = [], model = null, provider = null) => {
     const payload = {
       message,
       conversation_history: conversationHistory,
@@ -33,6 +37,10 @@ export const chatService = {
     
     if (model) {
       payload.model = model;
+    }
+
+    if (provider) {
+      payload.provider = provider;
     }
     
     const response = await api.post('/chat/stream', payload, {
@@ -85,6 +93,11 @@ export const documentService = {
 export const systemService = {
   getStatus: async () => {
     const response = await api.get('/status');
+    return response.data;
+  },
+
+  getModels: async () => {
+    const response = await api.get('/models');
     return response.data;
   },
 
