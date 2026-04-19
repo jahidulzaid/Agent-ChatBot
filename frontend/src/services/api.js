@@ -29,10 +29,18 @@ export const chatService = {
     return response.data;
   },
 
-  streamMessage: async (message, conversationHistory = [], model = null, provider = null) => {
+  streamMessage: async (
+    message,
+    conversationHistory = [],
+    model = null,
+    provider = null,
+    useRag = true,
+    onEvent = null
+  ) => {
     const payload = {
       message,
       conversation_history: conversationHistory,
+      use_rag: useRag,
     };
     
     if (model) {
@@ -43,10 +51,71 @@ export const chatService = {
       payload.provider = provider;
     }
     
-    const response = await api.post('/chat/stream', payload, {
-      responseType: 'stream'
+    const response = await fetch(`${API_BASE_URL}/chat/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
     });
-    return response.data;
+
+    if (!response.ok) {
+      let detail = `Streaming request failed with status ${response.status}`;
+      try {
+        const errJson = await response.json();
+        detail = errJson?.detail || detail;
+      } catch (error) {
+        // Keep fallback detail.
+      }
+      throw new Error(detail);
+    }
+
+    if (!response.body) {
+      throw new Error('No response body from streaming endpoint.');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    let finalResult = null;
+
+    let doneReading = false;
+    while (!doneReading) {
+      const { value, done } = await reader.read();
+      if (done) {
+        doneReading = true;
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) {
+          continue;
+        }
+
+        try {
+          const event = JSON.parse(line);
+          if (onEvent) {
+            onEvent(event);
+          }
+          if (event.event === 'final') {
+            finalResult = event.result;
+          }
+        } catch (error) {
+          console.warn('Failed to parse stream event:', line, error);
+        }
+      }
+    }
+
+    if (!finalResult) {
+      throw new Error('Stream ended without a final result event.');
+    }
+
+    return finalResult;
   },
 };
 
