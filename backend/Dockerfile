@@ -11,14 +11,23 @@ RUN apt-get update && apt-get install -y \
     make \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy build context and normalize paths so this Dockerfile works when
+# context is either repository root or backend directory.
+COPY . /workspace
+
+RUN if [ -f /workspace/requirements.txt ]; then \
+            cp /workspace/requirements.txt /app/requirements.txt; \
+            cp -r /workspace/. /app/; \
+        elif [ -f /workspace/backend/requirements.txt ]; then \
+            cp /workspace/backend/requirements.txt /app/requirements.txt; \
+            cp -r /workspace/backend/. /app/; \
+        else \
+            echo "requirements.txt not found in build context"; \
+            exit 1; \
+        fi && rm -rf /workspace
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY . .
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Create necessary directories
 RUN mkdir -p data/chromadb data/uploads
