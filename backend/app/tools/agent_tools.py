@@ -1,11 +1,14 @@
 """Agent tools for various tasks."""
 import logging
-from typing import Dict, Any, List, Callable
 import json
+from typing import Dict, Any, List, Callable
 from datetime import datetime
 import httpx
+import ast
+import math
 
 from app.rag.vector_store import vector_store
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +62,7 @@ class AgentTools:
             },
             {
                 'name': 'web_search',
-                'description': 'Search the web for current information using DuckDuckGo. Use for recent events, facts, or information not available in documents.',
+                'description': 'Search the web for current information using Tavily (with fallback providers). Use for recent events, facts, or information not available in documents.',
                 'parameters': {
                     'query': 'Search query (e.g., "latest AI news", "Python 3.12 features")'
                 }
@@ -95,6 +98,181 @@ class AgentTools:
             Tool function
         """
         return self.tools.get(tool_name) # pyright: ignore[reportReturnType]
+
+    def get_openai_tool_schemas(self, use_rag: bool = True) -> List[Dict[str, Any]]:
+        """Return OpenAI-compatible function tool schemas."""
+        schemas = [
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'search_documents',
+                    'description': 'Search uploaded documents for relevant information.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'query': {
+                                'type': 'string',
+                                'description': 'Search query for the document knowledge base'
+                            }
+                        },
+                        'required': ['query'],
+                        'additionalProperties': False,
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'summarize_documents',
+                    'description': 'Get a count summary of the current document knowledge base.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {},
+                        'additionalProperties': False,
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'web_search',
+                    'description': 'Search the web for current information.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'query': {
+                                'type': 'string',
+                                'description': 'Web search query'
+                            }
+                        },
+                        'required': ['query'],
+                        'additionalProperties': False,
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'calculate',
+                    'description': 'Safely evaluate a mathematical expression.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'expression': {
+                                'type': 'string',
+                                'description': 'Math expression such as 2 + 2 or pow(3, 2)'
+                            }
+                        },
+                        'required': ['expression'],
+                        'additionalProperties': False,
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'get_current_time',
+                    'description': 'Get current local date and time.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {},
+                        'additionalProperties': False,
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'greet',
+                    'description': 'Generate a personalized greeting.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'name': {
+                                'type': 'string',
+                                'description': 'Optional person name for greeting'
+                            }
+                        },
+                        'additionalProperties': False,
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'wish',
+                    'description': 'Generate wishes for occasions.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'occasion': {
+                                'type': 'string',
+                                'description': 'Occasion such as birthday, holiday, graduation'
+                            }
+                        },
+                        'required': ['occasion'],
+                        'additionalProperties': False,
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'tell_joke',
+                    'description': 'Tell a short programming or tech joke.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {},
+                        'additionalProperties': False,
+                    }
+                }
+            },
+        ]
+
+        if not use_rag:
+            return [
+                schema
+                for schema in schemas
+                if schema['function']['name'] not in {'search_documents', 'summarize_documents'}
+            ]
+
+        return schemas
+
+    @staticmethod
+    def parse_tool_arguments(arguments: Any) -> Dict[str, Any]:
+        """Parse tool arguments from model-generated JSON payload."""
+        if arguments is None:
+            return {}
+        if isinstance(arguments, dict):
+            return arguments
+        if not isinstance(arguments, str):
+            return {}
+
+        stripped = arguments.strip()
+        if not stripped:
+            return {}
+
+        try:
+            parsed = json.loads(stripped)
+            return parsed if isinstance(parsed, dict) else {}
+        except json.JSONDecodeError:
+            return {}
+
+    async def execute_tool_call(self, tool_name: str, arguments: Any) -> str:
+        """Execute a tool from function-calling payload."""
+        tool_func = self.get_tool(tool_name)
+        if not tool_func:
+            return f"Error: Tool '{tool_name}' not found."
+
+        tool_args = self.parse_tool_arguments(arguments)
+        try:
+            result = await tool_func(**tool_args)
+            if isinstance(result, str):
+                return result
+            return json.dumps(result, ensure_ascii=False)
+        except Exception as e:
+            logger.error('Error executing tool %s: %s', tool_name, e)
+            return f"Error executing tool '{tool_name}': {str(e)}"
     
     async def search_documents(self, query: str, **kwargs) -> str:
         """Search documents in the vector store.
@@ -145,12 +323,55 @@ class AgentTools:
             Calculation result
         """
         try:
-            # Only allow safe operations
-            allowed_names = {
-                'abs': abs, 'round': round, 'min': min, 'max': max,
-                'sum': sum, 'pow': pow
+            allowed_funcs = {
+                'abs': abs,
+                'round': round,
+                'min': min,
+                'max': max,
+                'pow': pow,
             }
-            result = eval(expression, {"__builtins__": {}}, allowed_names)
+            allowed_consts = {
+                'pi': math.pi,
+                'e': math.e,
+            }
+
+            parsed = ast.parse(expression, mode='eval')
+            allowed_nodes = (
+                ast.Expression,
+                ast.BinOp,
+                ast.UnaryOp,
+                ast.Add,
+                ast.Sub,
+                ast.Mult,
+                ast.Div,
+                ast.FloorDiv,
+                ast.Mod,
+                ast.Pow,
+                ast.USub,
+                ast.UAdd,
+                ast.Constant,
+                ast.Call,
+                ast.Name,
+                ast.Load,
+                ast.Tuple,
+                ast.List,
+            )
+
+            for node in ast.walk(parsed):
+                if not isinstance(node, allowed_nodes):
+                    return "Error calculating: Unsupported operation in expression"
+                if isinstance(node, ast.Call):
+                    if not isinstance(node.func, ast.Name) or node.func.id not in allowed_funcs:
+                        return "Error calculating: Unsupported function in expression"
+                if isinstance(node, ast.Name):
+                    if node.id not in allowed_funcs and node.id not in allowed_consts:
+                        return f"Error calculating: Unknown identifier '{node.id}'"
+
+            result = eval(
+                compile(parsed, '<calculator>', 'eval'),
+                {"__builtins__": {}},
+                {**allowed_funcs, **allowed_consts},
+            )
             return f"Result: {result}"
         except Exception as e:
             return f"Error calculating: {str(e)}"
@@ -177,11 +398,102 @@ class AgentTools:
         Returns:
             Search results
         """
+        if settings.WEB_SEARCH_PROVIDER == "tavily":
+            if settings.TAVILY_API_KEY:
+                return await self._search_with_tavily(query)
+            logger.warning("WEB_SEARCH_PROVIDER is 'tavily' but TAVILY_API_KEY is not configured. Falling back to DuckDuckGo.")
+            return await self._search_with_duckduckgo(query)
+
+        if settings.WEB_SEARCH_PROVIDER == "zenserp" and settings.ZENSERP_API_KEY:
+            return await self._search_with_zenserp(query)
+
+        return await self._search_with_duckduckgo(query)
+
+    async def _search_with_tavily(self, query: str) -> str:
+        """Search using Tavily API."""
+        search_url = "https://api.tavily.com/search"
+        fallback_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
+
+        payload = {
+            "query": query,
+            "search_depth": settings.TAVILY_SEARCH_DEPTH,
+            "max_results": max(1, min(settings.TAVILY_MAX_RESULTS, 20)),
+            "include_answer": True,
+            "include_raw_content": False,
+            "include_images": False,
+            "include_usage": True,
+        }
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {settings.TAVILY_API_KEY}",
+        }
+
         try:
-            # Zenserp API configuration
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                response = await client.post(search_url, headers=headers, json=payload)
+
+            if response.status_code != 200:
+                logger.warning("Tavily search failed with status %s, falling back to DuckDuckGo", response.status_code)
+                return await self._search_with_duckduckgo(query)
+
+            data = response.json()
+            lines = [f"**Web Search Results for:** {query}", ""]
+
+            answer = data.get("answer")
+            if answer:
+                lines.append("**Tavily Answer:**")
+                lines.append(answer)
+                lines.append("")
+
+            results = data.get("results", [])
+            if results:
+                lines.append("**Top Sources:**")
+                for idx, item in enumerate(results[:5], 1):
+                    title = item.get("title") or "Untitled"
+                    url = item.get("url") or ""
+                    content = (item.get("content") or "").strip()
+                    score = item.get("score")
+
+                    lines.append(f"{idx}. **{title}**")
+                    if content:
+                        snippet = content[:220] + "..." if len(content) > 220 else content
+                        lines.append(f"   {snippet}")
+                    if score is not None:
+                        try:
+                            lines.append(f"   Relevance: {float(score):.2f}")
+                        except Exception:
+                            pass
+                    if url:
+                        lines.append(f"   {url}")
+            else:
+                lines.append("No Tavily results returned.")
+
+            response_time = data.get("response_time")
+            usage = data.get("usage", {})
+            credits = usage.get("credits")
+
+            lines.append("")
+            if response_time is not None:
+                lines.append(f"Response time: {response_time}s")
+            if credits is not None:
+                lines.append(f"Credits used: {credits}")
+            lines.append(f"See more: {fallback_url}")
+
+            return "\n".join(lines)
+        except httpx.TimeoutException:
+            logger.warning("Tavily search timed out, falling back to DuckDuckGo")
+            return await self._search_with_duckduckgo(query)
+        except Exception as e:
+            logger.error(f"Error performing Tavily web search: {e}")
+            return await self._search_with_duckduckgo(query)
+
+    async def _search_with_zenserp(self, query: str) -> str:
+        """Search using Zenserp when configured."""
+        try:
             api_url = "https://app.zenserp.com/api/v2/search"
             headers = {
-                "apikey": "d79890a0-b22e-11f0-b1ad-73eadf9a1c39"
+                "apikey": settings.ZENSERP_API_KEY or ""
             }
             params = {
                 "q": query
@@ -191,9 +503,7 @@ class AgentTools:
                 response = await client.get(api_url, headers=headers, params=params)
                 
                 if response.status_code != 200:
-                    # Fallback to DuckDuckGo link
-                    search_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
-                    return f"**Web Search:** {query}\n\nSearch API unavailable (Status: {response.status_code})\nClick here to search manually: {search_url}"
+                    return await self._search_with_duckduckgo(query)
                 
                 data = response.json()
                 
@@ -219,23 +529,75 @@ class AgentTools:
                             results.append(f"  {url}")
                         results.append("")  # Empty line for spacing
                     
-                    # Add search URL for more results
                     search_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
                     results.append(f"**See all results:** {search_url}")
                     
                     return "\n".join(results)
                 else:
-                    # No results found
-                    search_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
-                    return f"**Web Search:** {query}\n\nNo results found.\nTry searching manually: {search_url}"
+                    return await self._search_with_duckduckgo(query)
                     
         except httpx.TimeoutException:
-            search_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
-            return f"**Web Search:** {query}\n\nSearch timed out (15s limit exceeded).\nClick here to search manually: {search_url}"
+            return await self._search_with_duckduckgo(query)
         except Exception as e:
             logger.error(f"Error performing web search: {e}")
-            search_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
-            return f"**Web Search:** {query}\n\nError: {str(e)}\nClick here to search manually: {search_url}"
+            return await self._search_with_duckduckgo(query)
+
+    async def _search_with_duckduckgo(self, query: str) -> str:
+        """Search using DuckDuckGo Instant Answer API with graceful fallback."""
+        search_url = f"https://duckduckgo.com/?q={query.replace(' ', '+')}&ia=web"
+        instant_url = "https://api.duckduckgo.com/"
+
+        try:
+            params = {
+                "q": query,
+                "format": "json",
+                "no_html": "1",
+                "skip_disambig": "1",
+            }
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                response = await client.get(instant_url, params=params)
+
+            if response.status_code != 200:
+                return f"**Web Search:** {query}\n\nSearch service unavailable right now.\nTry manual search: {search_url}"
+
+            data = response.json()
+            lines = [f"**Web Search Results for:** {query}\n"]
+
+            abstract = data.get("AbstractText")
+            heading = data.get("Heading")
+            if abstract:
+                lines.append(f"**{heading or 'Summary'}**")
+                lines.append(abstract)
+                if data.get("AbstractURL"):
+                    lines.append(f"Source: {data['AbstractURL']}")
+                lines.append("")
+
+            related_topics = data.get("RelatedTopics", [])
+            snippets = []
+            for topic in related_topics:
+                if "Text" in topic and "FirstURL" in topic:
+                    snippets.append((topic["Text"], topic["FirstURL"]))
+                if "Topics" in topic:
+                    for nested in topic["Topics"]:
+                        if "Text" in nested and "FirstURL" in nested:
+                            snippets.append((nested["Text"], nested["FirstURL"]))
+
+            if snippets:
+                lines.append("**Related Results:**")
+                for idx, (text, url) in enumerate(snippets[:5], 1):
+                    trimmed = text[:160] + "..." if len(text) > 160 else text
+                    lines.append(f"{idx}. {trimmed}")
+                    lines.append(f"   {url}")
+
+            if len(lines) <= 2:
+                return f"**Web Search:** {query}\n\nNo direct instant results found.\nTry manual search: {search_url}"
+
+            lines.append("")
+            lines.append(f"**See more results:** {search_url}")
+            return "\n".join(lines)
+        except Exception as e:
+            logger.error(f"DuckDuckGo search error: {e}")
+            return f"**Web Search:** {query}\n\nUnable to fetch search results.\nTry manual search: {search_url}"
 
     async def greet(self, name: str = None, **kwargs) -> str: # pyright: ignore[reportArgumentType]
         """Generate a personalized greeting.

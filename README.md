@@ -12,7 +12,7 @@ A full-stack intelligent chatbot with Retrieval-Augmented Generation (RAG), ReAc
 - 📚 **RAG System**: Upload documents (PDF, DOCX, TXT, MD) for context-aware responses
 - 🔧 **Multiple Tools**:
   - Document search with vector embeddings
-  - Web search (Google via Zenserp API)
+   - Web search (Tavily API)
   - Calculator for math operations
   - Current time/date
   - Greetings & wishes generator
@@ -20,6 +20,7 @@ A full-stack intelligent chatbot with Retrieval-Augmented Generation (RAG), ReAc
 - 🎨 **Modern UI**: React + Vite with beautiful interface
 - 🔄 **Real-time Reasoning**: View AI's thought process step-by-step
 - 🤖 **Multiple AI Models**: Switch between 6+ free OpenRouter models
+- 🔀 **Dual Provider Support**: OpenRouter-first with optional direct OpenAI fallback
 - 🐳 **Docker Ready**: One-command deployment
 
 ## 🏗️ Architecture
@@ -41,7 +42,8 @@ A full-stack intelligent chatbot with Retrieval-Augmented Generation (RAG), ReAc
 
 - Python 3.8+
 - Node.js 16+
-- OpenRouter API Key (get from [openrouter.ai](https://openrouter.ai/))
+- OpenRouter API Key (recommended, from [openrouter.ai](https://openrouter.ai/))
+- Optional OpenAI API Key (for direct OpenAI provider mode)
 
 ## 🚀 Quick Start
 
@@ -54,7 +56,7 @@ cd Agent-ChatBot
 
 # Configure environment
 cp .env.example backend/.env
-# Edit backend/.env with your OPENROUTER_API_KEY
+# Edit backend/.env with your API keys
 
 # Start with Docker Compose
 docker-compose up -d
@@ -80,7 +82,7 @@ pip install -r requirements.txt
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your OPENROUTER_API_KEY
+# Edit .env with your API keys
 
 # Run backend
 python main.py
@@ -182,11 +184,20 @@ Bot: [Uses web_search tool]
 Create `backend/.env`:
 
 ```env
-# Required
+# Preferred provider (openrouter | openai | auto)
+LLM_PROVIDER=openrouter
+
+# Recommended
 OPENROUTER_API_KEY=your_api_key_here
+
+# Optional OpenAI fallback
+# OPENAI_API_KEY=your_openai_key_here
 
 # Optional (defaults shown)
 OPENROUTER_MODEL=openai/gpt-4o-mini-2024-07-18
+OPENAI_MODEL=gpt-4o-mini
+WEB_SEARCH_PROVIDER=tavily
+# TAVILY_API_KEY=tvly-YOUR_API_KEY
 MAX_ITERATIONS=8
 TEMPERATURE=0.3
 MAX_TOKENS=1000
