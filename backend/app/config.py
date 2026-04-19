@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
     CORS_ORIGINS: Union[List[str], str] = "http://localhost:3000,http://localhost:5173"
+    CORS_ORIGIN_REGEX: Optional[str] = r"^https://.*\.vercel\.app$"
 
     # Web Search
     WEB_SEARCH_PROVIDER: Literal["tavily", "duckduckgo", "zenserp"] = "tavily"

@@ -248,10 +248,12 @@ npm run format
 
 ### ⚠️ Important: Platform Compatibility
 
-**NOT Compatible with Vercel** ❌
-- This app uses ML models (sentence-transformers, ChromaDB) that cause OOM errors on Vercel
-- Vercel's serverless architecture doesn't support persistent vector databases
-- Build process requires 8GB+ RAM for dependencies
+**Backend is NOT Compatible with Vercel** ❌
+- Backend uses ML/runtime components (sentence-transformers, vector storage) that are not a fit for Vercel serverless limits.
+- Deploy backend on Railway/Render/VPS.
+
+**Frontend is Compatible with Vercel** ✅
+- You can host the React frontend on Vercel and point it to your Railway backend.
 
 **✅ Recommended Platforms:**
 
@@ -296,6 +298,17 @@ Notes:
 - Frontend now proxies `/api/*` requests to `BACKEND_URL` via Nginx.
 - Railway dynamic `PORT` is handled automatically in both services.
 - If CORS errors appear, ensure `CORS_ORIGINS` exactly matches the frontend domain (including `https://`).
+
+### Frontend on Vercel + Backend on Railway
+
+1. Keep backend deployed on Railway.
+2. In Railway backend variables, set:
+   - `CORS_ORIGINS=https://<your-vercel-domain>`
+   - `CORS_ORIGIN_REGEX=^https://.*\\.vercel\\.app$` (recommended for preview deployments)
+3. Deploy `frontend/` to Vercel.
+4. In Vercel Project Settings -> Environment Variables, set:
+   - `VITE_API_URL=https://<your-railway-backend-domain>`
+5. Redeploy frontend in Vercel so the env value is included in the build.
 
 For detailed deployment instructions on other platforms, see:
 
