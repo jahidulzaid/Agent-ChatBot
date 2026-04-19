@@ -1,17 +1,18 @@
 """FastAPI application - main entry point."""
 import logging
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
+import json
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import aiofiles
-import os
 from pathlib import Path
 import uuid
 
 from app.config import settings
 from app.agents.react_agent import react_agent
+from app.agents.agent_runtime import agent_runtime
 from app.rag.vector_store import vector_store
 from app.rag.document_processor import document_processor
 
@@ -46,6 +47,7 @@ class ChatRequest(BaseModel):
     conversation_history: Optional[List[Dict[str, str]]] = None
     use_rag: bool = True
     model: Optional[str] = None
+    provider: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
@@ -53,6 +55,8 @@ class ChatResponse(BaseModel):
     answer: str
     reasoning_trace: List[Dict[str, Any]]
     iterations: int
+    provider: Optional[str] = None
+    model: Optional[str] = None
 
 
 class DocumentUploadResponse(BaseModel):
@@ -79,6 +83,10 @@ class SystemStatus(BaseModel):
     version: str
     total_documents: int
     available_tools: List[str]
+    llm_provider_preference: str
+    has_openrouter_key: bool
+    has_openai_key: bool
+    default_model: str
 
 
 # API Routes
@@ -103,13 +111,33 @@ async def get_status():
     """Get system status."""
     stats = vector_store.get_collection_stats()
     from app.tools.agent_tools import agent_tools
+    from app.agents.llm_client import llm_client
+    model_catalog = llm_client.get_model_catalog()
+    provider_status = llm_client.get_provider_status()
+    preferred_provider = model_catalog['recommended_provider']
+    default_model = (
+        provider_status['default_openrouter_model']
+        if preferred_provider == 'openrouter'
+        else provider_status['default_openai_model']
+    )
     
     return SystemStatus(
         status="operational",
         version=settings.APP_VERSION,
         total_documents=stats['total_documents'],
-        available_tools=list(agent_tools.tools.keys())
+        available_tools=list(agent_tools.tools.keys()),
+        llm_provider_preference=preferred_provider,
+        has_openrouter_key=provider_status['has_openrouter_key'],
+        has_openai_key=provider_status['has_openai_key'],
+        default_model=default_model,
     )
+
+
+@app.get("/models")
+async def get_models():
+    """Get available model catalog and provider status."""
+    from app.agents.llm_client import llm_client
+    return llm_client.get_model_catalog()
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -127,13 +155,17 @@ async def chat(request: ChatRequest):
         result = await react_agent.run(
             user_message=request.message,
             conversation_history=request.conversation_history or [],
-            model=request.model
+            model=request.model,
+            provider=request.provider,
+            use_rag=request.use_rag,
         )
         
         return ChatResponse(
             answer=result['answer'],
             reasoning_trace=result['reasoning_trace'],
-            iterations=result['iterations']
+            iterations=result['iterations'],
+            provider=result.get('provider'),
+            model=result.get('model'),
         )
     except Exception as e:
         logger.error(f"Error in chat endpoint: {e}")
@@ -142,19 +174,19 @@ async def chat(request: ChatRequest):
 
 @app.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
-    """Stream chat responses."""
+    """Stream chat trace events and final answer as NDJSON."""
     try:
         async def generate():
-            result = await react_agent.run(
+            async for event in agent_runtime.run_with_events(
                 user_message=request.message,
-                conversation_history=request.conversation_history or []
-            )
-            
-            # Stream the answer character by character
-            for char in result['answer']:
-                yield char
+                conversation_history=request.conversation_history or [],
+                model=request.model,
+                provider=request.provider,
+                use_rag=request.use_rag,
+            ):
+                yield json.dumps(event, ensure_ascii=False) + "\n"
         
-        return StreamingResponse(generate(), media_type="text/plain")
+        return StreamingResponse(generate(), media_type="application/x-ndjson")
     except Exception as e:
         logger.error(f"Error in stream endpoint: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -238,13 +270,7 @@ async def get_document_stats():
 async def clear_documents():
     """Clear all documents from the vector store."""
     try:
-        # Delete the collection and recreate it
-        vector_store.client.delete_collection("documents")
-        vector_store.collection = vector_store.client.create_collection(
-            name="documents",
-            metadata={"hnsw:space": "cosine"}
-        )
-        logger.info("Cleared all documents from vector store")
+        vector_store.clear_documents()
         
         return {"message": "All documents cleared successfully"}
     except Exception as e:
